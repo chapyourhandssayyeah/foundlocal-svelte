@@ -386,7 +386,12 @@ async function appendBlogIndex(topic, draft) {
     console.log(`Slug ${topic.slug} already in blog index — skipping.`); return false;
   }
   const entry = postEntryJs(topic, draft);
-  const next = file.replace(/(\n\];\s*\n)/, `${entry}$1`);
+  // Replacer FUNCTION, not a replacement string. In a replacement string "$1",
+  // "$&", "$`" and "$'" are special, so any dollar-digit in the post body (every
+  // price we quote: "$95", "$189") was being swapped for the captured text and
+  // corrupting the file. A function receives the match verbatim and interprets
+  // nothing. This broke the build on 2026-08-27.
+  const next = file.replace(/(\n\];\s*\n)/, (m) => entry + m);
   if (next === file) throw new Error("Could not find `];` to insert before in blog index file");
   await fs.writeFile(BLOG_INDEX, next);
   return true;
