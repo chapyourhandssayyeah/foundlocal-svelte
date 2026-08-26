@@ -78,7 +78,24 @@ numerator=1
 
 # --- open the PR ---
 BRANCH="$BRANCH_PREFIX/$SLUG"
-git checkout -q -b "$BRANCH" || fail "could not create $BRANCH"
+
+# Already delivered? An open PR for this slug means the post exists and is waiting
+# on a human to read it. That is 'empty' (nothing new to do), never 'fail'.
+EXISTING=$(gh pr list --repo dodonai/geolocally-svelte --state open \
+             --json number,headRefName \
+             --jq "[.[] | select(.headRefName | startswith(\"$BRANCH\"))] | .[0].number // empty" 2>/dev/null)
+if [ -n "$EXISTING" ]; then
+  delivered="PR #$EXISTING already open"
+  outcome="empty"; exit_code=0
+  git checkout -q main; emit; exit 0
+fi
+
+# A previous run may have been interrupted after creating this branch. Reuse the
+# name locally (-B, not -b) so a stale branch cannot wedge the job forever, and
+# date-suffix the remote name so the push never collides with an old branch.
+git checkout -q -B "$BRANCH" || fail "could not create $BRANCH"
+BRANCH="$BRANCH-$(date -u +%Y%m%d)"
+git branch -M "$BRANCH" || fail "could not name $BRANCH"
 git add "src/routes/blog/$SLUG" src/lib/content/blog-posts.js || fail "git add failed"
 git -c user.name="geolocally-bot" -c user.email="hello@geolocally.com" \
     commit -q -m "Weekly AEO blog draft: $TITLE" || fail "commit failed"
