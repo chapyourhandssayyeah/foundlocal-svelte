@@ -70,9 +70,9 @@ export const verticalPages = {
   },
   dentists: {
     slug: "for/dentists",
-    title: "Dentist Landing Pages That Convert Patients — GeoLocally",
+    title: "Dentist Website Design That Fills Your Schedule | GeoLocally",
     description:
-      "GeoLocally builds focused landing pages and explainer videos for dental practices. Clearer specialty, faster trust, more new-patient calls. Starting at $499.",
+      "Dentist website design that helps a nervous patient choose you in seconds. Focused pages and explainer videos for dental practices. Starting at $499.",
     locationLabel: "dental practices",
     heroTitle: "New patients pick dentists in seconds. Your homepage either makes that easy or makes that impossible.",
     heroBody:
@@ -132,9 +132,9 @@ export const verticalPages = {
   },
   lawyers: {
     slug: "for/lawyers",
-    title: "Law Firm Landing Pages That Book Consults — GeoLocally",
+    title: "Law Firm Website Design That Books Consults | GeoLocally",
     description:
-      "GeoLocally builds focused landing pages and explainer videos for law firms. Clearer practice area, faster trust, more qualified consultations. Starting at $499.",
+      "Law firm website design built around one practice area and one clear path to a consultation. Focused pages and explainer videos. Starting at $499.",
     locationLabel: "law firms",
     heroTitle: "Most law firm websites describe everything they do. Prospects can't tell what you actually do.",
     heroBody:
@@ -354,9 +354,9 @@ export const verticalPages = {
   },
   "auto-repair": {
     slug: "for/auto-repair",
-    title: "Auto Repair Landing Pages — GeoLocally",
+    title: "Auto Repair Shop Website Design | GeoLocally",
     description:
-      "GeoLocally builds focused landing pages and explainer videos for auto repair shops. Clearer specialty, faster trust, more service calls. Starting at $499.",
+      "Auto repair shop website design anchored to the services you want more of, with a phone number customers find fast. Starting at $499.",
     locationLabel: "auto repair shops",
     heroTitle: "Customers Google their car problem at 7am. Your page either solves it or sends them to the next shop.",
     heroBody:
