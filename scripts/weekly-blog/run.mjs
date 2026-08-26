@@ -380,6 +380,23 @@ function postEntryJs(topic, draft) {
 `;
 }
 
+async function renderCover(topic, draft) {
+  const coverPath = path.join(ROOT, "static", "blog-covers", `${topic.slug}.png`);
+  try { await fs.access(coverPath); return; } catch { /* doesn't exist yet, render it */ }
+  const { execFile } = await import("node:child_process");
+  const overline = (draft.category || "AEO") + " \u00b7 " + (topic.keyword || "AI Search");
+  const headline = (draft.title || topic.title).replace(/\s*\|.*$/, "").slice(0, 70);
+  await new Promise((resolve, reject) => {
+    execFile("node", [path.join(ROOT, "scripts", "render-blog-cover.mjs"), topic.slug, overline, headline],
+      { cwd: ROOT, timeout: 60_000 },
+      (err, stdout, stderr) => {
+        if (err) return reject(new Error(`render-blog-cover.mjs failed: ${stderr || err.message}`));
+        console.log(stdout.trim());
+        resolve();
+      });
+  });
+}
+
 async function appendBlogIndex(topic, draft) {
   const file = await fs.readFile(BLOG_INDEX, "utf8");
   if (file.includes(`slug: "${topic.slug}"`) || file.includes(`slug: '${topic.slug}'`)) {
@@ -418,6 +435,7 @@ async function emitOutput(key, value) {
   await fs.mkdir(pageDir, { recursive: true });
   const pagePath = path.join(pageDir, "+page.svelte");
   await fs.writeFile(pagePath, pageSvelte(topic.slug));
+  await renderCover(topic, draft);
   const indexUpdated = await appendBlogIndex(topic, draft);
   await fs.writeFile(path.join(ROOT, "qa-report.md"), qaReportMarkdown(qa));
   console.log(`✓ wrote ${pagePath}`);
