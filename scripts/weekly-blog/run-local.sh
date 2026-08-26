@@ -81,6 +81,12 @@ if [ -z "$SLUG" ]; then
   # Every topic already published is a legitimate 'empty', not a failure.
   outcome="empty"; exit_code=0; emit; exit 0
 fi
+
+# A missing cover doesn't fail the build (SvelteKit doesn't check referenced
+# static assets), so it stays invisible until someone opens the post. Belt and
+# suspenders on top of run.mjs's own renderCover() step.
+[ -f "static/blog-covers/$SLUG.png" ] \
+  || fail "no cover image was generated for $SLUG — refusing to push a broken image"
 numerator=1
 
 # --- open the PR ---
