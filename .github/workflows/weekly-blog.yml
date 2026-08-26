@@ -1,8 +1,14 @@
 name: Weekly AEO blog draft
 
+# NOTE: the weekly schedule was REMOVED on 2026-08-27.
+# This workflow authenticates with a metered ANTHROPIC_API_KEY. That key became
+# invalid on 2026-07-06 and the job then failed silently every Monday for eight
+# consecutive weeks (6 Jul through 24 Aug) while the blog sat dark. GitHub Actions
+# cannot use the Claude Code subscription, so the schedule now lives locally at
+# scripts/weekly-blog/run-local.sh (launchd: ai.geolocally.weekly-blog), which
+# drafts on the subscription and emits a heartbeat so a failure is visible.
+# Manual dispatch is kept for the API path; it needs a valid key in repo secrets.
 on:
-  schedule:
-    - cron: "0 1 * * 1"  # Mon 01:00 UTC = 09:00 Asia/Manila
   workflow_dispatch:
     inputs:
       slug:
@@ -34,6 +40,7 @@ jobs:
         id: draft
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          USE_SUBSCRIPTION: "false"   # Actions has no subscription; force the API path
           FORCE_SLUG: ${{ inputs.slug }}
           DRY_RUN: ${{ inputs.dry_run }}
         run: node scripts/weekly-blog/run.mjs

@@ -156,7 +156,35 @@ async function callAnthropic(system, user) {
       category: "Test", reading_time_minutes: 4, body_html: "<p>Dry-run placeholder.</p>",
     };
   }
-  if (!process.env.ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY required (or DRY_RUN=true).");
+  // Subscription auth (default): shell out to the Claude Code CLI, which uses the
+  // logged-in subscription. No API key, no metered spend. Set USE_SUBSCRIPTION=false
+  // to fall back to the metered API path below.
+  if (process.env.USE_SUBSCRIPTION !== "false") {
+    const { spawn } = await import("node:child_process");
+    const prompt = `${system}\n\n---\n\n${user}\n\nReturn ONLY the JSON object. No prose, no code fences.`;
+    const text = await new Promise((resolve, reject) => {
+      const child = spawn("claude", ["-p", "--model", process.env.CLAUDE_MODEL || "opus"], {
+        stdio: ["pipe", "pipe", "pipe"],
+      });
+      let out = "", err = "";
+      const timer = setTimeout(() => { child.kill("SIGKILL"); reject(new Error("claude CLI timed out after 15m")); }, 15 * 60 * 1000);
+      child.stdout.on("data", (d) => { out += d; });
+      child.stderr.on("data", (d) => { err += d; });
+      child.on("error", (e) => { clearTimeout(timer); reject(new Error(`claude CLI failed to start: ${e.message}`)); });
+      child.on("close", (code) => {
+        clearTimeout(timer);
+        if (code !== 0) return reject(new Error(`claude CLI exited ${code}: ${err.slice(-500)}`));
+        resolve(out.trim());
+      });
+      child.stdin.write(prompt);
+      child.stdin.end();
+    });
+    const cleanedSub = text.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/i, "").trim();
+    try { return JSON.parse(cleanedSub); }
+    catch (err) { console.error("Failed to parse Claude CLI response:\n", cleanedSub.slice(0, 2000)); throw err; }
+  }
+
+  if (!process.env.ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY required (or DRY_RUN=true, or USE_SUBSCRIPTION unset).");
   const { default: Anthropic } = await import("@anthropic-ai/sdk");
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
   const resp = await client.messages.create({
