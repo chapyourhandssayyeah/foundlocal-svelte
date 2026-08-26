@@ -383,12 +383,13 @@ function postEntryJs(topic, draft) {
 async function appendBlogIndex(topic, draft) {
   const file = await fs.readFile(BLOG_INDEX, "utf8");
   if (file.includes(`slug: "${topic.slug}"`) || file.includes(`slug: '${topic.slug}'`)) {
-    console.log(`Slug ${topic.slug} already in blog index — skipping.`); return;
+    console.log(`Slug ${topic.slug} already in blog index — skipping.`); return false;
   }
   const entry = postEntryJs(topic, draft);
   const next = file.replace(/(\n\];\s*\n)/, `${entry}$1`);
   if (next === file) throw new Error("Could not find `];` to insert before in blog index file");
   await fs.writeFile(BLOG_INDEX, next);
+  return true;
 }
 
 async function emitOutput(key, value) {
@@ -412,10 +413,10 @@ async function emitOutput(key, value) {
   await fs.mkdir(pageDir, { recursive: true });
   const pagePath = path.join(pageDir, "+page.svelte");
   await fs.writeFile(pagePath, pageSvelte(topic.slug));
-  await appendBlogIndex(topic, draft);
+  const indexUpdated = await appendBlogIndex(topic, draft);
   await fs.writeFile(path.join(ROOT, "qa-report.md"), qaReportMarkdown(qa));
   console.log(`✓ wrote ${pagePath}`);
-  console.log(`✓ updated ${BLOG_INDEX}`);
+  console.log(indexUpdated ? `✓ updated ${BLOG_INDEX}` : `· ${BLOG_INDEX} unchanged (slug already indexed)`);
   if (qa.status !== "pass") console.warn(`⚠ QA: needs-work after ${qa.attempts} revision(s), ${qa.issues.length} issue(s) — PR will be opened as DRAFT.`);
   await emitOutput("slug", topic.slug);
   await emitOutput("title", draft.title);
