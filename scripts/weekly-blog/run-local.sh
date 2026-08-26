@@ -66,6 +66,13 @@ GITHUB_OUTPUT="$OUT" node scripts/weekly-blog/run.mjs 2>&1 | tail -40
 rc=${PIPESTATUS[0]}
 [ "$rc" -eq 0 ] || fail "drafter exited $rc" "$rc"
 
+# The generated post is untrusted input to the build. Never push one that does
+# not compile — a broken blog-posts.js takes the whole site deploy down.
+node --check src/lib/content/blog-posts.js \
+  || fail "generated blog-posts.js is not valid JS — refusing to push"
+npm run build >/dev/null 2>&1 \
+  || fail "site build failed with the generated post — refusing to push"
+
 SLUG=$(grep '^slug=' "$OUT" | cut -d= -f2-)
 TITLE=$(grep '^title=' "$OUT" | cut -d= -f2-)
 QA=$(grep '^qa_status=' "$OUT" | cut -d= -f2-)
