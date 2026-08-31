@@ -408,9 +408,9 @@ export const verticalPages = {
   },
   accountants: {
     slug: "for/accountants",
-    title: "Accountant Landing Pages — GeoLocally",
+    title: "CPA & Accountant Website Design That Wins New Clients | GeoLocally",
     description:
-      "GeoLocally builds focused landing pages and explainer videos for CPAs, tax pros, and bookkeepers. Clearer specialty, faster trust, more client inquiries. Starting at $499.",
+      "CPA and accountant website design built around one client type and one clear path to a consultation. Focused pages and explainer videos. Starting at $499.",
     locationLabel: "accounting practices",
     heroTitle: "Most accountant websites describe \"comprehensive accounting services.\" Nobody searches for that.",
     heroBody:
