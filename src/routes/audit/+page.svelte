@@ -6,11 +6,9 @@
 	// Deliverable: a 1-page report on whether the business is named by the major AI assistants
 	// for queries like "best [service] in [city]" — sent within 3 business days, no charge.
 
-	// Structured lead form → mailto fallback (works everywhere, no backend needed).
-	// When we plug in Formspree/Web3Forms, change FORM_ENDPOINT below and swap
-	// the handleSubmit to fetch() instead of window.location.
-	// The mailto: fallback keeps working forever — zero-dependency lead capture.
-	const FORM_ENDPOINT = ''; // TODO: set to Formspree/Web3Forms URL when configured
+	// Structured lead form → FormSubmit AJAX endpoint, delivering to hello@geolocally.com.
+	// mailto: stays as the fallback if the fetch fails.
+	const FORM_ENDPOINT = 'https://formsubmit.co/ajax/hello@geolocally.com';
 
 	let businessName = $state('');
 	let service = $state('');
@@ -42,21 +40,20 @@
 		submitting = true;
 		error = '';
 		try {
-			if (FORM_ENDPOINT) {
-				const res = await fetch(FORM_ENDPOINT, {
-					method: 'POST',
-					headers: { 'content-type': 'application/json', accept: 'application/json' },
-					body: JSON.stringify({ businessName, service, city, website, phone, email, source: 'audit-page' })
-				});
-				if (!res.ok) throw new Error(`HTTP ${res.status}`);
-				submitted = true;
-			} else {
-				// Zero-backend fallback: open user's mail client with prefilled body.
-				window.location.href = buildMailto();
-				submitted = true;
-			}
+			const res = await fetch(FORM_ENDPOINT, {
+				method: 'POST',
+				headers: { 'content-type': 'application/json', accept: 'application/json' },
+				body: JSON.stringify({
+					_subject: `Audit request — ${businessName}`,
+					businessName, service, city, website, phone, email, source: 'audit-page'
+				})
+			});
+			if (!res.ok) throw new Error(`HTTP ${res.status}`);
+			submitted = true;
 		} catch (err) {
-			error = 'Could not send. Please email hello@geolocally.com directly.';
+			// Fallback: open user's mail client with prefilled body.
+			window.location.href = buildMailto();
+			submitted = true;
 		} finally {
 			submitting = false;
 		}
