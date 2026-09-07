@@ -11,6 +11,10 @@
 
 set -uo pipefail
 
+# launchd starts with a minimal PATH that misses claude (~/.local/bin), node and gh
+# (homebrew). The last two scheduled runs died on "claude CLI not on PATH".
+export PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"
+
 JOB_ID="geolocally-weekly-blog"
 RUN_ID="$(date -u +%Y%m%dT%H%M%S)"
 REPO="$HOME/Projects/geolocally-svelte"
