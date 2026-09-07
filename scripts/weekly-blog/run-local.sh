@@ -113,7 +113,7 @@ fi
 git checkout -q -B "$BRANCH" || fail "could not create $BRANCH"
 BRANCH="$BRANCH-$(date -u +%Y%m%d)"
 git branch -M "$BRANCH" || fail "could not name $BRANCH"
-git add "src/routes/blog/$SLUG" src/lib/content/blog-posts.js || fail "git add failed"
+git add "src/routes/blog/$SLUG" src/lib/content/blog-posts.js "static/blog-covers/$SLUG.png" || fail "git add failed"
 git -c user.name="geolocally-bot" -c user.email="hello@geolocally.com" \
     commit -q -m "Weekly AEO blog draft: $TITLE" || fail "commit failed"
 git push -q origin "$BRANCH" || fail "push failed — delivery failure is job failure"
