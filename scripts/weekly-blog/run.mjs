@@ -160,28 +160,48 @@ async function callAnthropic(system, user) {
   // logged-in subscription. No API key, no metered spend. Set USE_SUBSCRIPTION=false
   // to fall back to the metered API path below.
   if (process.env.USE_SUBSCRIPTION !== "false") {
-    const { spawn } = await import("node:child_process");
+    const askClaude = async (prompt) => {
+      const { spawn } = await import("node:child_process");
+      return new Promise((resolve, reject) => {
+        const child = spawn("claude", ["-p", "--model", process.env.CLAUDE_MODEL || "opus"], {
+          stdio: ["pipe", "pipe", "pipe"],
+        });
+        let out = "", err = "";
+        const timer = setTimeout(() => { child.kill("SIGKILL"); reject(new Error("claude CLI timed out after 15m")); }, 15 * 60 * 1000);
+        child.stdout.on("data", (d) => { out += d; });
+        child.stderr.on("data", (d) => { err += d; });
+        child.on("error", (e) => { clearTimeout(timer); reject(new Error(`claude CLI failed to start: ${e.message}`)); });
+        child.on("close", (code) => {
+          clearTimeout(timer);
+          if (code !== 0) return reject(new Error(`claude CLI exited ${code}: ${err.slice(-500)}`));
+          resolve(out.trim());
+        });
+        child.stdin.write(prompt);
+        child.stdin.end();
+      });
+    };
+    const tryParse = (raw) => {
+      const cleaned = raw.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/i, "").trim();
+      try { return JSON.parse(cleaned); } catch {}
+      // model sometimes wraps the object in prose — take first { to last }
+      const a = cleaned.indexOf("{"), b = cleaned.lastIndexOf("}");
+      if (a >= 0 && b > a) { try { return JSON.parse(cleaned.slice(a, b + 1)); } catch {} }
+      return null;
+    };
     const prompt = `${system}\n\n---\n\n${user}\n\nReturn ONLY the JSON object. No prose, no code fences.`;
-    const text = await new Promise((resolve, reject) => {
-      const child = spawn("claude", ["-p", "--model", process.env.CLAUDE_MODEL || "opus"], {
-        stdio: ["pipe", "pipe", "pipe"],
-      });
-      let out = "", err = "";
-      const timer = setTimeout(() => { child.kill("SIGKILL"); reject(new Error("claude CLI timed out after 15m")); }, 15 * 60 * 1000);
-      child.stdout.on("data", (d) => { out += d; });
-      child.stderr.on("data", (d) => { err += d; });
-      child.on("error", (e) => { clearTimeout(timer); reject(new Error(`claude CLI failed to start: ${e.message}`)); });
-      child.on("close", (code) => {
-        clearTimeout(timer);
-        if (code !== 0) return reject(new Error(`claude CLI exited ${code}: ${err.slice(-500)}`));
-        resolve(out.trim());
-      });
-      child.stdin.write(prompt);
-      child.stdin.end();
-    });
-    const cleanedSub = text.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/i, "").trim();
-    try { return JSON.parse(cleanedSub); }
-    catch (err) { console.error("Failed to parse Claude CLI response:\n", cleanedSub.slice(0, 2000)); throw err; }
+    const text = await askClaude(prompt);
+    let parsed = tryParse(text);
+    if (!parsed) {
+      // one self-repair pass: the 7 Sep run died on malformed JSON mid-string
+      console.error("Model returned malformed JSON, attempting one repair pass…");
+      const repaired = await askClaude(
+        `The text below was supposed to be ONE valid JSON object but does not parse. ` +
+        `Fix the syntax only — do not change any content — and return ONLY the corrected JSON object, nothing else.\n\n${text}`,
+      );
+      parsed = tryParse(repaired);
+    }
+    if (!parsed) { console.error("Failed to parse Claude CLI response after repair:\n", text.slice(0, 2000)); throw new Error("model output was not valid JSON after one repair attempt"); }
+    return parsed;
   }
 
   if (!process.env.ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY required (or DRY_RUN=true, or USE_SUBSCRIPTION unset).");
